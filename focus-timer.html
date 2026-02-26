@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Focus Timer</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #f0c040; --gold-dim: #a07c1a;
+    --bg: #0d0d14; --bg2: #13131f; --bg3: #1a1a2e;
+    --border: #2a2a44; --text: #e8e0cc; --text-dim: #7a7590;
+    --green: #4caf7d; --red: #e05c5c; --orange: #ff8c42;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    min-height: 100dvh; overflow-x: hidden;
+    display: flex; flex-direction: column;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(240,192,64,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 60%, rgba(255,255,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 80%, rgba(240,192,64,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 70%, rgba(255,255,255,0.2) 0%, transparent 100%);
+    pointer-events: none; z-index: 0;
+  }
+
+  #app {
+    position: relative; z-index: 1;
+    max-width: 420px; margin: 0 auto;
+    padding: 0 20px 60px;
+    width: 100%; flex: 1;
+    display: flex; flex-direction: column;
+  }
+
+  /* Back link */
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 20px; color: var(--text-dim); text-decoration: none;
+    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--gold); }
+
+  .header { text-align: center; margin-top: 20px; margin-bottom: 32px; }
+  .header-title {
+    font-family: 'Cinzel', serif; font-size: 26px; font-weight: 900;
+    letter-spacing: 4px; color: var(--gold);
+    text-shadow: 0 0 30px rgba(240,192,64,0.4);
+  }
+  .header-sub { font-style: italic; color: var(--text-dim); font-size: 14px; margin-top: 4px; }
+
+  /* SCREEN: SETUP */
+  #screen-setup { flex: 1; display: flex; flex-direction: column; }
+
+  .duration-label {
+    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 3px;
+    color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px;
+  }
+
+  .preset-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px; margin-bottom: 20px;
+  }
+  .preset-btn {
+    padding: 16px 8px; background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 14px; color: var(--text-dim); font-family: 'Cinzel', serif;
+    font-size: 13px; letter-spacing: 1px; cursor: pointer; transition: all 0.2s;
+    text-align: center;
+  }
+  .preset-btn .mins { font-size: 22px; color: var(--text); display: block; margin-bottom: 2px; }
+  .preset-btn:active, .preset-btn.active {
+    background: rgba(240,192,64,0.12); border-color: var(--gold-dim); color: var(--gold);
+  }
+  .preset-btn.active .mins { color: var(--gold); }
+
+  .custom-row {
+    display: flex; gap: 10px; align-items: center; margin-bottom: 28px;
+  }
+  .custom-label { font-size: 14px; color: var(--text-dim); white-space: nowrap; }
+  .custom-input {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'Cinzel', serif; font-size: 18px;
+    padding: 10px 14px; outline: none; width: 80px; text-align: center;
+    transition: border-color 0.2s;
+  }
+  .custom-input:focus { border-color: var(--gold-dim); }
+  .custom-note { font-size: 13px; color: var(--text-dim); font-style: italic; }
+
+  .session-name-wrap { margin-bottom: 28px; }
+  .session-name-input {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+    color: var(--text); font-family: 'Crimson Pro', serif; font-size: 16px;
+    padding: 12px 16px; outline: none; width: 100%; transition: border-color 0.2s;
+  }
+  .session-name-input:focus { border-color: var(--gold-dim); }
+  .session-name-input::placeholder { color: var(--text-dim); }
+
+  .start-btn {
+    width: 100%; padding: 16px; background: linear-gradient(135deg, #a07c1a, #f0c040);
+    border: none; border-radius: 14px; color: #0d0d14; font-family: 'Cinzel', serif;
+    font-size: 16px; font-weight: 700; letter-spacing: 3px; cursor: pointer;
+    transition: all 0.2s; text-transform: uppercase;
+  }
+  .start-btn:active { transform: scale(0.97); }
+
+  /* SCREEN: RUNNING */
+  #screen-running { display: none; flex-direction: column; align-items: center; flex: 1; }
+
+  .session-title {
+    font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: 2px;
+    color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;
+    text-align: center;
+  }
+  .session-name-display {
+    font-family: 'Cinzel', serif; font-size: 20px; color: var(--text);
+    text-align: center; margin-bottom: 40px;
+  }
+
+  /* Ring timer */
+  .ring-wrap {
+    position: relative; width: 260px; height: 260px;
+    margin-bottom: 32px; flex-shrink: 0;
+  }
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 10; }
+  .ring-fill {
+    fill: none; stroke: var(--gold); stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear, stroke 0.5s;
+    filter: drop-shadow(0 0 8px rgba(240,192,64,0.5));
+  }
+  .ring-fill.warning { stroke: var(--orange); filter: drop-shadow(0 0 8px rgba(255,140,66,0.5)); }
+  .ring-fill.danger { stroke: var(--red); filter: drop-shadow(0 0 8px rgba(224,92,92,0.5)); }
+  .ring-fill.paused { stroke: var(--text-dim); filter: none; }
+
+  .ring-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .ring-time {
+    font-family: 'Cinzel', serif; font-size: 52px; font-weight: 700;
+    color: var(--text); line-height: 1; letter-spacing: 2px;
+  }
+  .ring-status {
+    font-size: 13px; color: var(--text-dim); letter-spacing: 2px;
+    text-transform: uppercase; margin-top: 6px; font-family: 'Cinzel', serif;
+  }
+  .ring-status.paused-text { color: var(--orange); }
+
+  .pause-warning {
+    background: rgba(255,140,66,0.1); border: 1px solid rgba(255,140,66,0.3);
+    border-radius: 12px; padding: 12px 16px; text-align: center;
+    margin-bottom: 24px; display: none;
+  }
+  .pause-warning.visible { display: block; }
+  .pause-warning-title { font-family: 'Cinzel', serif; font-size: 13px; color: var(--orange); letter-spacing: 1px; }
+  .pause-warning-sub { font-size: 13px; color: var(--text-dim); margin-top: 4px; font-style: italic; }
+
+  .timer-actions { display: flex; gap: 12px; width: 100%; margin-bottom: 28px; }
+  .timer-btn {
+    flex: 1; padding: 14px; border: 1px solid var(--border); border-radius: 12px;
+    background: var(--bg2); color: var(--text); font-family: 'Cinzel', serif;
+    font-size: 13px; letter-spacing: 1px; cursor: pointer; transition: all 0.2s;
+  }
+  .timer-btn:active { transform: scale(0.96); }
+  .timer-btn.primary { background: rgba(240,192,64,0.12); border-color: var(--gold-dim); color: var(--gold); }
+  .timer-btn.danger-btn { background: rgba(224,92,92,0.1); border-color: rgba(224,92,92,0.3); color: var(--red); }
+
+  .leave-count {
+    text-align: center; font-size: 14px; color: var(--text-dim);
+  }
+  .leave-count span { color: var(--orange); font-family: 'Cinzel', serif; }
+
+  /* SCREEN: SUCCESS */
+  #screen-success {
+    display: none; flex-direction: column; align-items: center;
+    justify-content: center; flex: 1; text-align: center;
+  }
+  .success-icon { font-size: 80px; animation: bounceIn 0.6s cubic-bezier(0.34,1.56,0.64,1); margin-bottom: 24px; }
+  @keyframes bounceIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .success-title {
+    font-family: 'Cinzel', serif; font-size: 32px; color: var(--gold);
+    text-shadow: 0 0 30px rgba(240,192,64,0.5); letter-spacing: 3px; margin-bottom: 8px;
+  }
+  .success-sub { font-size: 16px; color: var(--text-dim); font-style: italic; margin-bottom: 32px; }
+  .success-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    width: 100%; margin-bottom: 36px;
+  }
+  .success-stat {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 16px;
+  }
+  .success-stat-val { font-family: 'Cinzel', serif; font-size: 24px; color: var(--gold); }
+  .success-stat-label { font-size: 12px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+  .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 999; }
+
+  /* SCREEN: FAIL */
+  #screen-fail {
+    display: none; flex-direction: column; align-items: center;
+    justify-content: center; flex: 1; text-align: center;
+  }
+  .fail-icon { font-size: 70px; margin-bottom: 24px; }
+  .fail-title { font-family: 'Cinzel', serif; font-size: 28px; color: var(--red); letter-spacing: 2px; margin-bottom: 8px; }
+  .fail-sub { font-size: 16px; color: var(--text-dim); font-style: italic; margin-bottom: 32px; }
+
+  .action-btn {
+    width: 100%; padding: 14px; background: linear-gradient(135deg, #a07c1a, #f0c040);
+    border: none; border-radius: 12px; color: #0d0d14; font-family: 'Cinzel', serif;
+    font-size: 14px; font-weight: 700; letter-spacing: 2px; cursor: pointer; margin-bottom: 10px;
+  }
+  .action-btn.ghost {
+    background: transparent; color: var(--text-dim); border: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <a class="back-link" href="quest-master.html">← QUEST MASTER</a>
+
+  <div class="header">
+    <div class="header-title">🎯 FOCUS</div>
+    <div class="header-sub">Stay on the page. Don't break the chain.</div>
+  </div>
+
+  <!-- SETUP -->
+  <div id="screen-setup">
+    <div class="duration-label">Choose Duration</div>
+    <div class="preset-grid">
+      <button class="preset-btn" onclick="selectPreset(5,this)"><span class="mins">5</span>min</button>
+      <button class="preset-btn" onclick="selectPreset(10,this)"><span class="mins">10</span>min</button>
+      <button class="preset-btn active" onclick="selectPreset(25,this)"><span class="mins">25</span>min</button>
+      <button class="preset-btn" onclick="selectPreset(30,this)"><span class="mins">30</span>min</button>
+      <button class="preset-btn" onclick="selectPreset(45,this)"><span class="mins">45</span>min</button>
+      <button class="preset-btn" onclick="selectPreset(60,this)"><span class="mins">60</span>min</button>
+    </div>
+    <div class="custom-row">
+      <span class="custom-label">Custom:</span>
+      <input type="number" class="custom-input" id="customMins" placeholder="—" min="1" max="240" oninput="selectCustom()">
+      <span class="custom-note">minutes</span>
+    </div>
+    <div class="session-name-wrap">
+      <div class="duration-label" style="margin-bottom:10px">Session Name (optional)</div>
+      <input type="text" class="session-name-input" id="sessionName" placeholder="e.g. Deep Work, Study, Exercise..." maxlength="60">
+    </div>
+    <button class="start-btn" onclick="startTimer()">⚔ Begin Focus Session</button>
+  </div>
+
+  <!-- RUNNING -->
+  <div id="screen-running">
+    <div class="session-title">Focusing on</div>
+    <div class="session-name-display" id="runSessionName">—</div>
+
+    <div class="ring-wrap">
+      <svg width="260" height="260" viewBox="0 0 260 260">
+        <circle class="ring-bg" cx="130" cy="130" r="115"/>
+        <circle class="ring-fill" id="ringFill" cx="130" cy="130" r="115"
+          stroke-dasharray="722.6" stroke-dashoffset="0"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-time" id="ringTime">25:00</div>
+        <div class="ring-status" id="ringStatus">FOCUSING</div>
+      </div>
+    </div>
+
+    <div class="pause-warning" id="pauseWarning">
+      <div class="pause-warning-title">⏸ SESSION PAUSED</div>
+      <div class="pause-warning-sub">You left the page. Return to resume.</div>
+    </div>
+
+    <div class="timer-actions">
+      <button class="timer-btn primary" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+      <button class="timer-btn danger-btn" onclick="abandonTimer()">✕ Abandon</button>
+    </div>
+
+    <div class="leave-count" id="leaveCount"></div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="screen-success">
+    <canvas class="confetti" id="confettiCanvas"></canvas>
+    <div class="success-icon">🏆</div>
+    <div class="success-title">VICTORY!</div>
+    <div class="success-sub" id="successSub">You held focus for the full session.</div>
+    <div class="success-stats">
+      <div class="success-stat">
+        <div class="success-stat-val" id="successDuration">25m</div>
+        <div class="success-stat-label">Duration</div>
+      </div>
+      <div class="success-stat">
+        <div class="success-stat-val" id="successLeaves">0</div>
+        <div class="success-stat-label">Times Left</div>
+      </div>
+    </div>
+    <button class="action-btn" onclick="resetToSetup()">⚔ New Session</button>
+    <a href="quest-master.html"><button class="action-btn ghost">← Back to Quests</button></a>
+  </div>
+
+  <!-- FAIL / ABANDONED -->
+  <div id="screen-fail">
+    <div class="fail-icon">💀</div>
+    <div class="fail-title">SESSION BROKEN</div>
+    <div class="fail-sub" id="failSub">The session was abandoned.</div>
+    <button class="action-btn" onclick="resetToSetup()">⚔ Try Again</button>
+    <a href="quest-master.html"><button class="action-btn ghost">← Back to Quests</button></a>
+  </div>
+</div>
+
+<script>
+const CIRCUMFERENCE = 2 * Math.PI * 115; // 722.6
+
+let timerState = {
+  totalSeconds: 25 * 60,
+  remainingSeconds: 25 * 60,
+  running: false,
+  paused: false,
+  leaveCount: 0,
+  sessionName: '',
+  startTime: null,
+  interval: null
+};
+
+let selectedMinutes = 25;
+
+function selectPreset(mins, el) {
+  selectedMinutes = mins;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('customMins').value = '';
+}
+
+function selectCustom() {
+  const val = parseInt(document.getElementById('customMins').value);
+  if (val > 0) {
+    selectedMinutes = val;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  }
+}
+
+function startTimer() {
+  const mins = parseInt(document.getElementById('customMins').value) || selectedMinutes;
+  if (!mins || mins < 1) return;
+  timerState.totalSeconds = mins * 60;
+  timerState.remainingSeconds = mins * 60;
+  timerState.running = true;
+  timerState.paused = false;
+  timerState.leaveCount = 0;
+  timerState.sessionName = document.getElementById('sessionName').value.trim() || 'Focus Session';
+  timerState.startTime = Date.now();
+
+  showScreen('running');
+  document.getElementById('runSessionName').textContent = timerState.sessionName;
+  updateRing();
+  startInterval();
+}
+
+function startInterval() {
+  clearInterval(timerState.interval);
+  timerState.interval = setInterval(() => {
+    if (timerState.paused || !timerState.running) return;
+    timerState.remainingSeconds--;
+    updateRing();
+    if (timerState.remainingSeconds <= 0) {
+      clearInterval(timerState.interval);
+      timerState.running = false;
+      showSuccess();
+    }
+  }, 1000);
+}
+
+function updateRing() {
+  const r = timerState.remainingSeconds;
+  const total = timerState.totalSeconds;
+  const pct = r / total;
+  const offset = CIRCUMFERENCE * (1 - pct);
+
+  document.getElementById('ringFill').style.strokeDashoffset = offset;
+  document.getElementById('ringTime').textContent = formatTime(r);
+
+  const fill = document.getElementById('ringFill');
+  const status = document.getElementById('ringStatus');
+
+  if (timerState.paused) {
+    fill.className = 'ring-fill paused';
+    status.textContent = 'PAUSED';
+    status.className = 'ring-status paused-text';
+  } else if (pct <= 0.1) {
+    fill.className = 'ring-fill danger';
+    status.textContent = 'ALMOST DONE';
+    status.className = 'ring-status';
+  } else if (pct <= 0.25) {
+    fill.className = 'ring-fill warning';
+    status.textContent = 'KEEP GOING';
+    status.className = 'ring-status';
+  } else {
+    fill.className = 'ring-fill';
+    status.textContent = 'FOCUSING';
+    status.className = 'ring-status';
+  }
+
+  const lc = document.getElementById('leaveCount');
+  if (timerState.leaveCount > 0) {
+    lc.innerHTML = 'Left page <span>' + timerState.leaveCount + '</span> time' + (timerState.leaveCount !== 1 ? 's' : '');
+  } else {
+    lc.innerHTML = '';
+  }
+
+  const pauseBtn = document.getElementById('pauseBtn');
+  pauseBtn.textContent = timerState.paused ? '▶ Resume' : '⏸ Pause';
+  pauseBtn.className = timerState.paused ? 'timer-btn primary' : 'timer-btn primary';
+}
+
+function togglePause() {
+  timerState.paused = !timerState.paused;
+  updateRing();
+  document.getElementById('pauseWarning').classList.remove('visible');
+}
+
+function abandonTimer() {
+  if (!confirm('Abandon this focus session?')) return;
+  clearInterval(timerState.interval);
+  timerState.running = false;
+  const elapsed = Math.round((timerState.totalSeconds - timerState.remainingSeconds) / 60);
+  document.getElementById('failSub').textContent =
+    'You made it ' + elapsed + ' min' + (elapsed !== 1 ? 's' : '') + ' before abandoning.';
+  showScreen('fail');
+}
+
+function formatTime(secs) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function showScreen(name) {
+  ['setup','running','success','fail'].forEach(s => {
+    const el = document.getElementById('screen-' + s);
+    el.style.display = (s === name) ? 'flex' : 'none';
+  });
+}
+
+function showSuccess() {
+  const mins = Math.round(timerState.totalSeconds / 60);
+  document.getElementById('successDuration').textContent = mins + 'm';
+  document.getElementById('successLeaves').textContent = timerState.leaveCount;
+  document.getElementById('successSub').textContent = timerState.leaveCount === 0
+    ? 'Perfect focus. You never left the page.'
+    : 'Session complete. ' + timerState.leaveCount + ' interruption' + (timerState.leaveCount !== 1 ? 's' : '') + ' logged.';
+  showScreen('success');
+  launchConfetti();
+}
+
+function resetToSetup() {
+  clearInterval(timerState.interval);
+  timerState = { totalSeconds: 25*60, remainingSeconds: 25*60, running: false, paused: false, leaveCount: 0, sessionName: '', startTime: null, interval: null };
+  showScreen('setup');
+}
+
+// Visibility API — pause when user leaves
+document.addEventListener('visibilitychange', () => {
+  if (!timerState.running) return;
+  if (document.hidden) {
+    if (!timerState.paused) {
+      timerState.paused = true;
+      timerState.leaveCount++;
+      document.getElementById('pauseWarning').classList.add('visible');
+      updateRing();
+    }
+  } else {
+    // Returned — don't auto-resume, let user tap resume
+    document.getElementById('pauseWarning').classList.add('visible');
+    updateRing();
+  }
+});
+
+// Confetti
+function launchConfetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const particles = [];
+  const colors = ['#f0c040','#4caf7d','#7c5cbf','#ff8c42','#e8e0cc'];
+  for (let i = 0; i < 120; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: -10 - Math.random() * 100,
+      vx: (Math.random() - 0.5) * 3,
+      vy: 2 + Math.random() * 4,
+      w: 6 + Math.random() * 8,
+      h: 4 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rot: Math.random() * 360,
+      rotv: (Math.random() - 0.5) * 8,
+      alpha: 1
+    });
+  }
+  let frame;
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive = false;
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += p.rotv;
+      if (p.y > canvas.height * 0.7) p.alpha -= 0.02;
+      if (p.alpha > 0) {
+        alive = true;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        ctx.restore();
+      }
+    });
+    if (alive) frame = requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
+}
+
+showScreen('setup');
+</script>
+</body>
+</html>

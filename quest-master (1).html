@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Quest Master</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #f0c040; --gold-dim: #a07c1a;
+    --bg: #0d0d14; --bg2: #13131f; --bg3: #1a1a2e;
+    --border: #2a2a44; --text: #e8e0cc; --text-dim: #7a7590;
+    --green: #4caf7d; --red: #e05c5c; --orange: #ff8c42;
+    --blue: #5c9cbf;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 17px; min-height: 100dvh; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(240,192,64,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 60%, rgba(255,255,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 80%, rgba(240,192,64,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 70%, rgba(255,255,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 35% 90%, rgba(255,255,255,0.15) 0%, transparent 100%);
+    pointer-events: none; z-index: 0;
+  }
+  #app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 0 120px; }
+
+  /* Header */
+  .header { padding: 24px 20px 0; text-align: center; position: relative; }
+  .header-title {
+    font-family: 'Cinzel', serif; font-size: 28px; font-weight: 900;
+    letter-spacing: 4px; color: var(--gold);
+    text-shadow: 0 0 30px rgba(240,192,64,0.4); margin-bottom: 4px;
+  }
+  .header-subtitle { font-style: italic; color: var(--text-dim); font-size: 14px; letter-spacing: 1px; }
+  .focus-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 12px; padding: 7px 16px;
+    background: rgba(240,192,64,0.08); border: 1px solid rgba(240,192,64,0.2);
+    border-radius: 100px; color: var(--gold); text-decoration: none;
+    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px;
+    transition: all 0.2s;
+  }
+  .focus-link:active { background: rgba(240,192,64,0.18); }
+  .header-links { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; }
+  .settings-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--text-dim); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .settings-btn:active { color: var(--gold); border-color: var(--gold-dim); }
+
+  /* Settings overlay */
+  .settings-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 1000; display: flex; align-items: flex-end;
+    animation: fadeIn 0.2s ease;
+  }
+  .settings-sheet {
+    background: var(--bg2); border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0; width: 100%; max-width: 480px;
+    margin: 0 auto; padding: 20px 20px 40px;
+    animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .settings-handle { width: 36px; height: 4px; background: var(--border); border-radius: 100px; margin: 0 auto 20px; }
+  .settings-title { font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 20px; }
+  .settings-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row-label { font-size: 16px; }
+  .settings-row-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; font-style: italic; }
+  .settings-action-btn {
+    padding: 8px 18px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--bg3); color: var(--text-dim); font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: 1px; cursor: pointer;
+  }
+  .settings-action-btn.danger { border-color: rgba(224,92,92,0.4); color: var(--red); background: rgba(224,92,92,0.08); }
+  .settings-close {
+    width: 100%; padding: 13px; margin-top: 16px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text-dim); font-family: 'Cinzel', serif;
+    font-size: 13px; letter-spacing: 2px; cursor: pointer;
+  }
+
+  /* XP Card */
+  .xp-card {
+    margin: 18px 16px 0; background: var(--bg2);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 18px; position: relative; overflow: hidden;
+  }
+  .xp-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .xp-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .level-badge { display: flex; align-items: center; gap: 10px; }
+  .level-orb {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f0c040, #a07c1a);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700;
+    color: #0d0d14; box-shadow: 0 0 20px rgba(240,192,64,0.3); flex-shrink: 0;
+  }
+  .level-info { line-height: 1.3; }
+  .level-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold); letter-spacing: 1px; }
+  .level-sub { font-size: 13px; color: var(--text-dim); font-style: italic; }
+  .xp-numbers { text-align: right; }
+  .xp-total { font-family: 'Cinzel', serif; font-size: 20px; color: var(--gold); line-height: 1; }
+  .xp-label { font-size: 11px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
+  .xp-bar-wrap { background: rgba(255,255,255,0.06); border-radius: 100px; height: 7px; overflow: hidden; }
+  .xp-bar-fill {
+    height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+    border-radius: 100px; transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 0 8px rgba(240,192,64,0.5);
+  }
+  .xp-bar-label { display: flex; justify-content: space-between; margin-top: 5px; font-size: 11px; color: var(--text-dim); }
+
+  /* Stats */
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 10px 16px 0; }
+  .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; }
+  .stat-value { font-family: 'Cinzel', serif; font-size: 20px; color: var(--text); line-height: 1; }
+  .stat-value.streak { color: var(--orange); }
+  .stat-label { font-size: 11px; color: var(--text-dim); margin-top: 3px; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* Tab nav */
+  .tab-nav { display: flex; margin: 16px 16px 0; gap: 8px; }
+  .tab-btn {
+    flex: 1; padding: 10px; background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text-dim); font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: 2px; cursor: pointer; transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .tab-btn.active {
+    background: rgba(240,192,64,0.12); border-color: var(--gold-dim); color: var(--gold);
+  }
+
+  /* Section */
+  .section { margin: 16px 16px 0; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-left: 2px; }
+  .section-title { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-dim); }
+  .section-badge {
+    font-family: 'Cinzel', serif; font-size: 11px;
+    background: rgba(76,175,125,0.12); border: 1px solid rgba(76,175,125,0.25);
+    color: var(--green); border-radius: 100px; padding: 2px 10px;
+  }
+
+  /* Add task form */
+  .add-form { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 14px; }
+  .form-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  input[type="text"] {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'Crimson Pro', serif; font-size: 16px;
+    padding: 10px 14px; outline: none; transition: border-color 0.2s; width: 100%;
+  }
+  input[type="text"]:focus { border-color: var(--gold-dim); }
+  input[type="text"]::placeholder { color: var(--text-dim); }
+
+  .xp-select-wrap { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .xp-pill {
+    padding: 6px 12px; border-radius: 100px; border: 1px solid var(--border);
+    background: var(--bg3); color: var(--text-dim); font-family: 'Cinzel', serif;
+    font-size: 11px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .xp-pill.active { background: rgba(240,192,64,0.15); border-color: var(--gold-dim); color: var(--gold); }
+  .add-btn {
+    width: 100%; padding: 11px; background: linear-gradient(135deg, #a07c1a, #f0c040);
+    border: none; border-radius: 12px; color: #0d0d14; font-family: 'Cinzel', serif;
+    font-size: 13px; font-weight: 700; letter-spacing: 2px; cursor: pointer;
+    transition: all 0.2s; text-transform: uppercase;
+  }
+  .add-btn:active { transform: scale(0.97); }
+  .add-btn.daily-btn { background: linear-gradient(135deg, #1a3a5c, #5c9cbf); color: white; }
+
+  /* Filter tabs */
+  .filter-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+  .filter-tab {
+    padding: 5px 12px; border-radius: 100px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: 1px; cursor: pointer; transition: all 0.15s;
+  }
+  .filter-tab.active { background: rgba(240,192,64,0.12); border-color: var(--gold-dim); color: var(--gold); }
+
+  .tasks { display: flex; flex-direction: column; gap: 8px; }
+
+  /* Task card */
+  .task-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+    animation: slideIn 0.3s ease;
+  }
+  .task-card.all-done { border-color: rgba(76,175,125,0.3); }
+  .task-card.daily-card { border-left: 3px solid var(--blue); }
+  .task-card.daily-card.all-done { border-left-color: var(--green); border-color: rgba(76,175,125,0.3); }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .task-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 12px; cursor: pointer; user-select: none;
+  }
+  .task-check {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid var(--border); display: flex; align-items: center;
+    justify-content: center; cursor: pointer; flex-shrink: 0;
+    transition: all 0.2s; font-size: 13px; background: transparent;
+  }
+  .task-check:active { transform: scale(0.85); }
+  .task-check.checked { background: var(--green); border-color: var(--green); color: white; }
+
+  .task-main { flex: 1; min-width: 0; }
+  .task-name { font-size: 16px; line-height: 1.3; }
+  .task-card.all-done .task-name { text-decoration: line-through; color: var(--text-dim); }
+  .task-meta { display: flex; gap: 5px; align-items: center; margin-top: 3px; flex-wrap: wrap; }
+  .task-xp-badge {
+    font-family: 'Cinzel', serif; font-size: 10px; color: var(--gold);
+    background: rgba(240,192,64,0.1); border: 1px solid rgba(240,192,64,0.2);
+    border-radius: 100px; padding: 1px 7px;
+  }
+  .task-card.all-done .task-xp-badge { color: var(--text-dim); background: transparent; border-color: transparent; }
+  .daily-badge {
+    font-family: 'Cinzel', serif; font-size: 10px; color: var(--blue);
+    background: rgba(92,156,191,0.1); border: 1px solid rgba(92,156,191,0.2);
+    border-radius: 100px; padding: 1px 7px;
+  }
+  .subtask-count { font-size: 12px; color: var(--text-dim); }
+  .subtask-count.has-done { color: var(--green); }
+
+  /* Timing info */
+  .task-timing {
+    font-size: 12px; color: var(--text-dim); margin-top: 2px;
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .timing-chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: var(--bg3); border-radius: 6px; padding: 2px 6px; font-size: 11px;
+  }
+  .timing-chip.running { color: var(--orange); border: 1px solid rgba(255,140,66,0.3); animation: pulse-border 1.5s ease infinite; }
+  .timing-chip.done-time { color: var(--green); }
+  @keyframes pulse-border {
+    0%, 100% { border-color: rgba(255,140,66,0.3); }
+    50% { border-color: rgba(255,140,66,0.7); }
+  }
+
+  .task-right { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+  .timer-start-btn {
+    padding: 5px 8px; border-radius: 8px; border: 1px solid rgba(255,140,66,0.3);
+    background: rgba(255,140,66,0.08); color: var(--orange); font-family: 'Cinzel', serif;
+    font-size: 10px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .timer-start-btn.stop { border-color: rgba(224,92,92,0.3); background: rgba(224,92,92,0.08); color: var(--red); }
+  .expand-btn {
+    width: 26px; height: 26px; border-radius: 6px; border: none;
+    background: transparent; color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 11px;
+  }
+  .expand-btn.open { color: var(--gold); }
+  .task-delete {
+    width: 26px; height: 26px; border-radius: 50%; border: none;
+    background: transparent; color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+  }
+  .task-delete:active { color: var(--red); }
+
+  /* Subtask area */
+  .subtask-area {
+    border-top: 1px solid var(--border);
+    padding: 8px 12px 12px; display: none;
+  }
+  .subtask-area.open { display: block; }
+  .subtask-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
+  .subtask-item {
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 9px; border-radius: 9px; background: var(--bg3);
+  }
+  .subtask-item.done { opacity: 0.5; }
+  .sub-check {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--border); display: flex; align-items: center;
+    justify-content: center; cursor: pointer; flex-shrink: 0;
+    transition: all 0.2s; font-size: 9px; background: transparent;
+  }
+  .sub-check.checked { background: var(--green); border-color: var(--green); color: white; }
+  .subtask-name { flex: 1; font-size: 14px; line-height: 1.3; }
+  .subtask-item.done .subtask-name { text-decoration: line-through; color: var(--text-dim); }
+  .subtask-xp { font-family: 'Cinzel', serif; font-size: 10px; color: var(--gold); white-space: nowrap; }
+  .subtask-item.done .subtask-xp { color: var(--text-dim); }
+  .sub-delete {
+    width: 20px; height: 20px; border-radius: 50%; border: none;
+    background: transparent; color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0;
+  }
+  .sub-delete:active { color: var(--red); }
+
+  .add-sub-section { }
+  .add-sub-row { display: flex; gap: 6px; margin-bottom: 7px; }
+  .add-sub-row input { font-size: 14px; padding: 7px 10px; }
+  .sub-pills-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .sub-xp-pill {
+    padding: 4px 9px; border-radius: 100px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text-dim); font-family: 'Cinzel', serif;
+    font-size: 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .sub-xp-pill.active { background: rgba(240,192,64,0.15); border-color: var(--gold-dim); color: var(--gold); }
+  .sub-add-btn {
+    padding: 5px 12px; background: rgba(240,192,64,0.1); border: 1px solid var(--gold-dim);
+    border-radius: 8px; color: var(--gold); font-family: 'Cinzel', serif;
+    font-size: 11px; cursor: pointer; white-space: nowrap; margin-left: auto;
+  }
+
+  .progress-mini { height: 3px; background: rgba(255,255,255,0.06); border-radius: 100px; margin-top: 5px; overflow: hidden; }
+  .progress-mini-fill { height: 100%; background: var(--green); border-radius: 100px; transition: width 0.4s ease; }
+
+  /* Daily reset info */
+  .daily-reset-bar {
+    background: rgba(92,156,191,0.08); border: 1px solid rgba(92,156,191,0.2);
+    border-radius: 10px; padding: 8px 14px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px;
+  }
+  .daily-reset-label { color: var(--blue); font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; }
+  .daily-reset-time { color: var(--text-dim); font-size: 12px; }
+
+  .empty-state { text-align: center; padding: 36px 20px; color: var(--text-dim); font-style: italic; }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.4; }
+
+  /* XP Popup */
+  .xp-popup {
+    position: fixed; pointer-events: none;
+    font-family: 'Cinzel', serif; font-size: 18px; color: var(--gold);
+    text-shadow: 0 0 20px rgba(240,192,64,0.8); font-weight: 700;
+    z-index: 999; animation: floatUp 1s ease forwards;
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-70px) scale(1.3); }
+  }
+
+  /* Level Up */
+  .levelup-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .levelup-content { text-align: center; padding: 40px; }
+  .levelup-glow { font-size: 70px; margin-bottom: 18px; animation: pulse 0.5s ease infinite alternate; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+  .levelup-title { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 5px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 6px; }
+  .levelup-level { font-family: 'Cinzel', serif; font-size: 48px; color: var(--gold); text-shadow: 0 0 40px rgba(240,192,64,0.6); line-height: 1; margin-bottom: 6px; }
+  .levelup-name { font-family: 'Cinzel', serif; font-size: 20px; color: var(--text); margin-bottom: 28px; }
+  .levelup-btn {
+    padding: 13px 36px; background: linear-gradient(135deg, #a07c1a, #f0c040);
+    border: none; border-radius: 100px; color: #0d0d14;
+    font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; letter-spacing: 2px; cursor: pointer;
+  }
+  .streak-fire { display: inline-block; animation: flicker 0.8s ease infinite alternate; }
+  @keyframes flicker { from { transform: scale(1) rotate(-3deg); } to { transform: scale(1.1) rotate(3deg); } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-title">QUEST MASTER</div>
+    <div class="header-subtitle">Your daily adventure awaits</div>
+    <div class="header-links">
+      <a class="focus-link" href="focus-timer.html">🎯 Focus Timer</a>
+      <button class="settings-btn" onclick="openSettings()">⚙️</button>
+    </div>
+  </div>
+
+  <!-- Settings Sheet -->
+  <div class="settings-overlay" id="settingsOverlay" style="display:none" onclick="if(event.target===this)closeSettings()">
+    <div class="settings-sheet">
+      <div class="settings-handle"></div>
+      <div class="settings-title">Settings</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Total XP</div>
+          <div class="settings-row-sub" id="settingsXpInfo">—</div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Clear Completed Tasks</div>
+          <div class="settings-row-sub">Remove all finished one-off tasks</div>
+        </div>
+        <button class="settings-action-btn" onclick="clearCompleted()">Clear</button>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Reset All Data</div>
+          <div class="settings-row-sub">Wipes everything — XP, tasks, streak</div>
+        </div>
+        <button class="settings-action-btn danger" onclick="resetAll()">Reset</button>
+      </div>
+      <button class="settings-close" onclick="closeSettings()">CLOSE</button>
+    </div>
+  </div>
+
+  <div class="xp-card">
+    <div class="xp-top">
+      <div class="level-badge">
+        <div class="level-orb" id="levelOrb">1</div>
+        <div class="level-info">
+          <div class="level-name" id="levelName">NOVICE</div>
+          <div class="level-sub" id="levelSub">Begin your journey</div>
+        </div>
+      </div>
+      <div class="xp-numbers">
+        <div class="xp-total"><span id="totalXp">0</span></div>
+        <div class="xp-label">Total XP</div>
+      </div>
+    </div>
+    <div class="xp-bar-wrap"><div class="xp-bar-fill" id="xpBar" style="width:0%"></div></div>
+    <div class="xp-bar-label">
+      <span id="xpProgress">0 / 100 XP</span>
+      <span id="xpToNext">100 to level up</span>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-value" id="statCompleted">0</div>
+      <div class="stat-label">Done Today</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value streak" id="statStreak">0 <span class="streak-fire">🔥</span></div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="statPending">0</div>
+      <div class="stat-label">Active</div>
+    </div>
+  </div>
+
+  <!-- Tab Nav -->
+  <div class="tab-nav">
+    <button class="tab-btn active" id="tab-tasks" onclick="switchTab('tasks')">⚔ Tasks</button>
+    <button class="tab-btn" id="tab-daily" onclick="switchTab('daily')">🔄 Daily</button>
+  </div>
+
+  <!-- ============ TASKS TAB ============ -->
+  <div id="panel-tasks">
+    <div class="section">
+      <div class="section-title" style="margin-bottom:10px">New Task</div>
+      <div class="add-form">
+        <div class="form-row">
+          <input type="text" id="taskInput" placeholder="Name your task..." maxlength="80">
+        </div>
+        <div class="xp-select-wrap">
+          <span style="font-size:12px;color:var(--text-dim);white-space:nowrap;flex-shrink:0">XP:</span>
+          <button class="xp-pill active" data-xp="10" onclick="selectXP(this,'task')">+10</button>
+          <button class="xp-pill" data-xp="25" onclick="selectXP(this,'task')">+25</button>
+          <button class="xp-pill" data-xp="50" onclick="selectXP(this,'task')">+50</button>
+          <button class="xp-pill" data-xp="100" onclick="selectXP(this,'task')">+100</button>
+        </div>
+        <button class="add-btn" onclick="addTask()">⚔ Add Task</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="setFilter('active',this,'task')">Active</button>
+        <button class="filter-tab" onclick="setFilter('done',this,'task')">Completed</button>
+        <button class="filter-tab" onclick="setFilter('all',this,'task')">All</button>
+      </div>
+      <div class="tasks" id="taskList"></div>
+    </div>
+  </div>
+
+  <!-- ============ DAILY TAB ============ -->
+  <div id="panel-daily" style="display:none">
+    <div class="section">
+      <div class="section-title" style="margin-bottom:10px">New Daily Task</div>
+      <div class="add-form">
+        <div class="form-row">
+          <input type="text" id="dailyInput" placeholder="e.g. Morning workout, Read 30 min..." maxlength="80">
+        </div>
+        <div class="xp-select-wrap">
+          <span style="font-size:12px;color:var(--text-dim);white-space:nowrap;flex-shrink:0">XP:</span>
+          <button class="xp-pill active" data-xp="10" onclick="selectXP(this,'daily')" id="dpill10">+10</button>
+          <button class="xp-pill" data-xp="25" onclick="selectXP(this,'daily')">+25</button>
+          <button class="xp-pill" data-xp="50" onclick="selectXP(this,'daily')">+50</button>
+          <button class="xp-pill" data-xp="100" onclick="selectXP(this,'daily')">+100</button>
+        </div>
+        <button class="add-btn daily-btn" onclick="addDailyTask()">🔄 Add Daily Task</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div id="dailyResetBar" class="daily-reset-bar">
+        <span class="daily-reset-label">🔄 RESETS AT MIDNIGHT</span>
+        <span class="daily-reset-time" id="resetCountdown">—</span>
+      </div>
+      <div class="tasks" id="dailyList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="levelup-overlay" id="levelUpOverlay" style="display:none">
+  <div class="levelup-content">
+    <div class="levelup-glow">⚔️</div>
+    <div class="levelup-title">Level Up!</div>
+    <div class="levelup-level" id="luLevel">2</div>
+    <div class="levelup-name" id="luName">APPRENTICE</div>
+    <button class="levelup-btn" onclick="closeLevelUp()">CLAIM GLORY</button>
+  </div>
+</div>
+
+<script>
+const LEVELS = [
+  { name: 'NOVICE', sub: 'Begin your journey', xp: 0 },
+  { name: 'APPRENTICE', sub: 'Learning the craft', xp: 100 },
+  { name: 'ADVENTURER', sub: 'Roads beckon you', xp: 250 },
+  { name: 'WARRIOR', sub: 'Steel your resolve', xp: 500 },
+  { name: 'KNIGHT', sub: 'Honor guides you', xp: 1000 },
+  { name: 'CHAMPION', sub: 'Trials conquered', xp: 2000 },
+  { name: 'HERO', sub: 'Legends speak of you', xp: 4000 },
+  { name: 'LEGEND', sub: 'Songs echo your deeds', xp: 8000 },
+  { name: 'MYTHIC', sub: 'Beyond mortal reach', xp: 15000 },
+  { name: 'ETERNAL', sub: 'Time bows before you', xp: 30000 },
+];
+
+let state = JSON.parse(localStorage.getItem('qm_v4') || 'null') || {
+  totalXp: 0, level: 1,
+  tasks: [],       // one-off tasks
+  dailyTasks: [],  // template daily tasks
+  dailyLog: {},    // keyed by date "YYYY-MM-DD" -> array of daily completions for that day
+  streak: 0, lastStreakDate: null
+};
+if (!state.dailyTasks) state.dailyTasks = [];
+if (!state.dailyLog) state.dailyLog = {};
+state.tasks.forEach(t => { if (!t.subtasks) t.subtasks = []; });
+
+let selectedXP = { task: 10, daily: 10 };
+let taskFilter = 'active';
+let expandedTasks = {};
+let subXpSelected = {};
+let currentTab = 'tasks';
+let clockInterval = null;
+
+function save() { localStorage.setItem('qm_v4', JSON.stringify(state)); }
+function today() { return new Date().toISOString().slice(0,10); }
+function getLevelData(l) { return LEVELS[Math.min(l-1, LEVELS.length-1)]; }
+function getXPForLevel(l) {
+  const curr = LEVELS[Math.min(l-1, LEVELS.length-1)];
+  const next = LEVELS[Math.min(l, LEVELS.length-1)];
+  return { curr: curr.xp, next: (next && next.xp > curr.xp) ? next.xp : curr.xp + 10000 };
+}
+function h(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function isTaskDone(task) {
+  if (task.subtasks && task.subtasks.length > 0) return task.subtasks.every(s => s.done);
+  return !!task.done;
+}
+function fmtTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+function fmtDuration(ms) {
+  if (!ms || ms < 0) return '—';
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return h + 'h ' + (m % 60) + 'm';
+  if (m > 0) return m + 'm ' + (s % 60) + 's';
+  return s + 's';
+}
+
+// ---- Daily log helpers ----
+function getTodayLog() {
+  const d = today();
+  if (!state.dailyLog[d]) state.dailyLog[d] = {};
+  return state.dailyLog[d];
+}
+function getDailyEntry(dailyId) {
+  return getTodayLog()[dailyId] || null;
+}
+function setDailyEntry(dailyId, entry) {
+  getTodayLog()[dailyId] = entry;
+}
+function isDailyDoneToday(dailyId) {
+  const e = getDailyEntry(dailyId);
+  return !!(e && e.done);
+}
+
+// ---- UI update ----
+function updateUI() {
+  const ld = getLevelData(state.level);
+  const { curr, next } = getXPForLevel(state.level);
+  const xpIn = state.totalXp - curr;
+  const xpNeed = next - curr;
+  const pct = Math.min(100, Math.round((xpIn / xpNeed) * 100));
+
+  document.getElementById('levelOrb').textContent = state.level;
+  document.getElementById('levelName').textContent = ld.name;
+  document.getElementById('levelSub').textContent = ld.sub;
+  document.getElementById('totalXp').textContent = state.totalXp.toLocaleString();
+  document.getElementById('xpBar').style.width = pct + '%';
+  document.getElementById('xpProgress').textContent = xpIn + ' / ' + xpNeed + ' XP';
+  document.getElementById('xpToNext').textContent = (xpNeed - xpIn) + ' to level up';
+
+  // Stats
+  const tasksDone = state.tasks.filter(t => isTaskDone(t)).length;
+  const dailyDone = state.dailyTasks.filter(dt => isDailyDoneToday(dt.id)).length;
+  const active = state.tasks.filter(t => !isTaskDone(t)).length + state.dailyTasks.filter(dt => !isDailyDoneToday(dt.id)).length;
+  document.getElementById('statCompleted').textContent = tasksDone + dailyDone;
+  document.getElementById('statStreak').innerHTML = state.streak + ' <span class="streak-fire">🔥</span>';
+  document.getElementById('statPending').textContent = active;
+
+  renderTasks();
+  renderDailyTasks();
+  updateCountdown();
+}
+
+// ---- Countdown to midnight ----
+function updateCountdown() {
+  const now = new Date();
+  const midnight = new Date(now); midnight.setHours(24,0,0,0);
+  const diff = midnight - now;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  const el = document.getElementById('resetCountdown');
+  if (el) el.textContent = 'Resets in ' + h + 'h ' + m + 'm ' + s + 's';
+}
+
+// ---- Render tasks ----
+function renderTasks() {
+  const list = document.getElementById('taskList');
+  let tasks = state.tasks;
+  if (taskFilter === 'active') tasks = tasks.filter(t => !isTaskDone(t));
+  if (taskFilter === 'done') tasks = tasks.filter(t => isTaskDone(t));
+  if (tasks.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">⚔️</div>' +
+      (taskFilter === 'done' ? 'No completed tasks yet.' : 'No active tasks. Add one above!') + '</div>';
+    return;
+  }
+  list.innerHTML = tasks.map(t => buildTaskCard(t, false)).join('');
+}
+
+function renderDailyTasks() {
+  const list = document.getElementById('dailyList');
+  const tasks = state.dailyTasks;
+  if (tasks.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔄</div>No daily tasks yet. Add some above!</div>';
+    return;
+  }
+  list.innerHTML = tasks.map(t => buildTaskCard(t, true)).join('');
+}
+
+function buildTaskCard(t, isDaily) {
+  const done = isDaily ? isDailyDoneToday(t.id) : isTaskDone(t);
+  const subs = (!isDaily && t.subtasks) ? t.subtasks : [];
+  const subDone = subs.filter(s => s.done).length;
+  const subTotal = subs.length;
+  const isOpen = !!expandedTasks[t.id];
+  const subXp = subXpSelected[t.id] || 10;
+
+  const totalXpVal = subTotal > 0 ? subs.reduce((a,s)=>a+s.xp,0) : t.xp;
+  const pct = subTotal > 0 ? Math.round((subs.filter(s=>s.done).reduce((a,s)=>a+s.xp,0)/totalXpVal)*100) : (done?100:0);
+
+  // Timing
+  let timingHTML = '';
+  const entry = isDaily ? getDailyEntry(t.id) : null;
+  const startTs = isDaily ? (entry && entry.startTime) : t.startTime;
+  const endTs = isDaily ? (entry && entry.endTime) : t.endTime;
+  const isRunning = startTs && !endTs;
+
+  if (isRunning) {
+    timingHTML = '<div class="task-timing"><span class="timing-chip running">▶ Started ' + fmtTime(startTs) + '</span></div>';
+  } else if (startTs && endTs) {
+    const dur = fmtDuration(endTs - startTs);
+    timingHTML = '<div class="task-timing">' +
+      '<span class="timing-chip">▶ ' + fmtTime(startTs) + '</span>' +
+      '<span class="timing-chip done-time">■ ' + fmtTime(endTs) + '</span>' +
+      '<span class="timing-chip done-time">⏱ ' + dur + '</span>' +
+      '</div>';
+  } else if (startTs) {
+    timingHTML = '<div class="task-timing"><span class="timing-chip">▶ ' + fmtTime(startTs) + '</span></div>';
+  }
+
+  // Start/stop button
+  let timerBtn = '';
+  if (!done) {
+    if (isRunning) {
+      timerBtn = '<button class="timer-start-btn stop" onclick="event.stopPropagation();stopTimer(\'' + t.id + '\',' + isDaily + ')">■ Stop</button>';
+    } else if (!startTs) {
+      timerBtn = '<button class="timer-start-btn" onclick="event.stopPropagation();startTimer(\'' + t.id + '\',' + isDaily + ')">▶ Start</button>';
+    }
+  }
+
+  const subListHTML = subs.length > 0 ? '<div class="subtask-list">' + subs.map(s =>
+    '<div class="subtask-item ' + (s.done?'done':'') + '" id="sub-' + s.id + '">' +
+    '<button class="sub-check ' + (s.done?'checked':'') + '" onclick="toggleSub(\'' + t.id + '\',\'' + s.id + '\')">' + (s.done?'✓':'') + '</button>' +
+    '<span class="subtask-name">' + h(s.name) + '</span>' +
+    '<span class="subtask-xp">+' + s.xp + '</span>' +
+    '<button class="sub-delete" onclick="deleteSub(\'' + t.id + '\',\'' + s.id + '\')">✕</button>' +
+    '</div>'
+  ).join('') + '</div>' : '';
+
+  const pillsHTML = [5,10,25,50].map(v =>
+    '<button class="sub-xp-pill ' + (subXp===v?'active':'') + '" data-xp="' + v + '" onclick="selectSubXP(\'' + t.id + '\',' + v + ',this)">+' + v + '</button>'
+  ).join('');
+
+  const expandArea = !isDaily ? (
+    '<div class="subtask-area ' + (isOpen?'open':'') + '">' +
+    subListHTML +
+    '<div class="add-sub-section">' +
+    '<div class="add-sub-row"><input type="text" id="sub-input-' + t.id + '" placeholder="Add a subtask..." maxlength="80" onkeydown="if(event.key===\'Enter\')addSub(\'' + t.id + '\')"></div>' +
+    '<div class="sub-pills-row">' + pillsHTML + '<button class="sub-add-btn" onclick="addSub(\'' + t.id + '\')">+ Add</button></div>' +
+    '</div></div>'
+  ) : '';
+
+  const expandBtnHTML = !isDaily ?
+    '<button class="expand-btn ' + (isOpen?'open':'') + '" onclick="event.stopPropagation();toggleExpand(\'' + t.id + '\')">' + (isOpen?'▲':'▼') + '</button>' : '';
+
+  const deleteHandler = isDaily ? 'deleteDaily(\'' + t.id + '\')' : 'deleteTask(\'' + t.id + '\')';
+  const toggleHandler = isDaily ? 'toggleDaily(\'' + t.id + '\')' : 'toggleTask(\'' + t.id + '\')';
+  const headerClick = !isDaily ? 'onclick="toggleExpand(\'' + t.id + '\')"' : '';
+
+  return '<div class="task-card ' + (done?'all-done':'') + (isDaily?' daily-card':'') + '" id="task-' + t.id + '">' +
+    '<div class="task-header" ' + headerClick + '>' +
+    '<button class="task-check ' + (done?'checked':'') + '" onclick="event.stopPropagation();' + toggleHandler + '">' + (done?'✓':'') + '</button>' +
+    '<div class="task-main">' +
+    '<div class="task-name">' + h(t.name) + '</div>' +
+    '<div class="task-meta">' +
+    '<span class="task-xp-badge">+' + totalXpVal + ' XP</span>' +
+    (isDaily ? '<span class="daily-badge">daily</span>' : '') +
+    (subTotal > 0 ? '<span class="subtask-count ' + (subDone>0?'has-done':'') + '">' + subDone + '/' + subTotal + ' steps</span>' : (!isDaily ? '<span class="subtask-count">▼ subtasks</span>' : '')) +
+    '</div>' +
+    timingHTML +
+    (subTotal > 0 ? '<div class="progress-mini"><div class="progress-mini-fill" style="width:' + pct + '%"></div></div>' : '') +
+    '</div>' +
+    '<div class="task-right">' +
+    timerBtn +
+    expandBtnHTML +
+    '<button class="task-delete" onclick="event.stopPropagation();' + deleteHandler + '">✕</button>' +
+    '</div></div>' +
+    expandArea +
+    '</div>';
+}
+
+// ---- Timing ----
+function startTimer(id, isDaily) {
+  if (isDaily) {
+    const entry = getDailyEntry(id) || {};
+    entry.startTime = Date.now();
+    entry.endTime = null;
+    setDailyEntry(id, entry);
+  } else {
+    const t = state.tasks.find(t => t.id === id);
+    if (t) { t.startTime = Date.now(); t.endTime = null; }
+  }
+  save(); renderTasks(); renderDailyTasks();
+}
+
+function stopTimer(id, isDaily) {
+  if (isDaily) {
+    const entry = getDailyEntry(id) || {};
+    entry.endTime = Date.now();
+    setDailyEntry(id, entry);
+  } else {
+    const t = state.tasks.find(t => t.id === id);
+    if (t) t.endTime = Date.now();
+  }
+  save(); renderTasks(); renderDailyTasks();
+}
+
+// ---- Toggle tasks ----
+function toggleTask(id) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) return;
+  const wasDone = isTaskDone(task);
+  if (!wasDone) {
+    const oldLevel = state.level;
+    let xpGained = 0;
+    if (task.subtasks && task.subtasks.length > 0) {
+      task.subtasks.forEach(s => { if (!s.done) { s.done = true; xpGained += s.xp; } });
+    } else {
+      task.done = true; xpGained = task.xp;
+    }
+    // Auto-stop timer if running
+    if (task.startTime && !task.endTime) task.endTime = Date.now();
+    if (xpGained > 0) awardXP(xpGained, 'task-' + id, oldLevel);
+  } else {
+    if (task.subtasks && task.subtasks.length > 0) task.subtasks.forEach(s => s.done = false);
+    else task.done = false;
+    task.endTime = null;
+  }
+  save(); updateUI();
+}
+
+function toggleDaily(id) {
+  const dt = state.dailyTasks.find(t => t.id === id);
+  if (!dt) return;
+  const wasDone = isDailyDoneToday(id);
+  if (!wasDone) {
+    const oldLevel = state.level;
+    const entry = getDailyEntry(id) || {};
+    entry.done = true;
+    if (entry.startTime && !entry.endTime) entry.endTime = Date.now();
+    if (!entry.startTime) { entry.startTime = Date.now(); entry.endTime = Date.now(); }
+    setDailyEntry(id, entry);
+    updateStreak();
+    awardXP(dt.xp, 'task-' + id, oldLevel);
+  } else {
+    const entry = getDailyEntry(id) || {};
+    entry.done = false;
+    entry.endTime = null;
+    setDailyEntry(id, entry);
+  }
+  save(); updateUI();
+}
+
+function toggleSub(taskId, subId) {
+  const task = state.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  const sub = task.subtasks.find(s => s.id === subId);
+  if (!sub) return;
+  if (!sub.done) {
+    const oldLevel = state.level;
+    sub.done = true;
+    awardXP(sub.xp, 'sub-' + subId, oldLevel);
+  } else {
+    sub.done = false;
+  }
+  save(); updateUI();
+}
+
+function awardXP(xp, elId, oldLevel) {
+  state.totalXp += xp;
+  updateStreak();
+  while (state.level < LEVELS.length) {
+    const nextXP = LEVELS[state.level] ? LEVELS[state.level].xp : Infinity;
+    if (state.totalXp >= nextXP) state.level++;
+    else break;
+  }
+  setTimeout(() => showXPPopup(xp, elId), 50);
+  if (state.level > oldLevel) setTimeout(() => showLevelUp(state.level), 700);
+}
+
+function updateStreak() {
+  const td = today();
+  if (state.lastStreakDate === td) return;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+  state.streak = (state.lastStreakDate === yesterday) ? (state.streak||0)+1 : 1;
+  state.lastStreakDate = td;
+}
+
+// ---- Add tasks ----
+function addTask() {
+  const input = document.getElementById('taskInput');
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  const id = Date.now().toString();
+  state.tasks.unshift({ id, name, xp: selectedXP.task, done: false, subtasks: [] });
+  expandedTasks[id] = true;
+  input.value = '';
+  save(); updateUI();
+  setTimeout(() => { const el = document.getElementById('sub-input-'+id); if(el) el.focus(); }, 100);
+}
+
+function addDailyTask() {
+  const input = document.getElementById('dailyInput');
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  const id = 'd' + Date.now().toString();
+  state.dailyTasks.push({ id, name, xp: selectedXP.daily });
+  input.value = '';
+  save(); updateUI();
+}
+
+function addSub(taskId) {
+  const input = document.getElementById('sub-input-' + taskId);
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  const task = state.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  task.subtasks.push({
+    id: Date.now().toString() + Math.random().toString(36).slice(2,6),
+    name, xp: subXpSelected[taskId] || 10, done: false
+  });
+  input.value = '';
+  save(); renderTasks();
+  setTimeout(() => { const el = document.getElementById('sub-input-'+taskId); if(el) el.focus(); }, 50);
+}
+
+// ---- Delete ----
+function deleteTask(id) {
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  delete expandedTasks[id];
+  save(); updateUI();
+}
+
+function deleteDaily(id) {
+  if (!confirm('Remove this daily task? (It will be gone every day)')) return;
+  state.dailyTasks = state.dailyTasks.filter(t => t.id !== id);
+  save(); updateUI();
+}
+
+function deleteSub(taskId, subId) {
+  const task = state.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  task.subtasks = task.subtasks.filter(s => s.id !== subId);
+  save(); renderTasks();
+}
+
+// ---- UI helpers ----
+function toggleExpand(id) {
+  expandedTasks[id] = !expandedTasks[id];
+  renderTasks();
+  if (expandedTasks[id]) setTimeout(() => { const el = document.getElementById('sub-input-'+id); if(el) el.focus(); }, 50);
+}
+
+function selectXP(el, type) {
+  const group = type === 'task' ? '#panel-tasks .xp-pill' : '#panel-daily .xp-pill';
+  document.querySelectorAll(group).forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  selectedXP[type] = parseInt(el.dataset.xp);
+}
+
+function selectSubXP(taskId, xp, el) {
+  subXpSelected[taskId] = xp;
+  const card = document.getElementById('task-' + taskId);
+  if (card) card.querySelectorAll('.sub-xp-pill').forEach(p => {
+    p.classList.toggle('active', parseInt(p.dataset.xp) === xp);
+  });
+}
+
+function setFilter(f, el, type) {
+  taskFilter = f;
+  document.querySelectorAll('#panel-tasks .filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderTasks();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('panel-tasks').style.display = tab === 'tasks' ? 'block' : 'none';
+  document.getElementById('panel-daily').style.display = tab === 'daily' ? 'block' : 'none';
+  document.getElementById('tab-tasks').classList.toggle('active', tab === 'tasks');
+  document.getElementById('tab-daily').classList.toggle('active', tab === 'daily');
+}
+
+function showXPPopup(xp, refId) {
+  const el = document.getElementById(refId);
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const popup = document.createElement('div');
+  popup.className = 'xp-popup';
+  popup.textContent = '+' + xp + ' XP';
+  popup.style.left = (rect.left + rect.width/2 - 30) + 'px';
+  popup.style.top = (rect.top + window.scrollY) + 'px';
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 1000);
+}
+
+function showLevelUp(level) {
+  document.getElementById('luLevel').textContent = level;
+  document.getElementById('luName').textContent = getLevelData(level).name;
+  document.getElementById('levelUpOverlay').style.display = 'flex';
+}
+function closeLevelUp() { document.getElementById('levelUpOverlay').style.display = 'none'; }
+
+// Enter keys
+document.getElementById('taskInput').addEventListener('keydown', e => { if(e.key==='Enter') addTask(); });
+document.getElementById('dailyInput').addEventListener('keydown', e => { if(e.key==='Enter') addDailyTask(); });
+
+// Daily reset check + countdown
+function checkDailyReset() {
+  // Nothing to actively reset — daily status is tracked per-day via dailyLog
+  // Just clean up old log entries to save space (keep last 30 days)
+  const keys = Object.keys(state.dailyLog);
+  if (keys.length > 30) {
+    keys.sort();
+    keys.slice(0, keys.length - 30).forEach(k => delete state.dailyLog[k]);
+    save();
+  }
+}
+
+// Clock tick
+setInterval(() => {
+  updateCountdown();
+  // Re-render running timers to show live elapsed indicator
+}, 30000);
+
+
+function openSettings() {
+  document.getElementById('settingsXpInfo').textContent =
+    state.totalXp.toLocaleString() + ' XP — Level ' + state.level + ' ' + getLevelData(state.level).name;
+  document.getElementById('settingsOverlay').style.display = 'flex';
+}
+function closeSettings() {
+  document.getElementById('settingsOverlay').style.display = 'none';
+}
+function clearCompleted() {
+  const count = state.tasks.filter(t => isTaskDone(t)).length;
+  if (count === 0) { alert('No completed tasks to clear.'); return; }
+  if (!confirm('Remove ' + count + ' completed task' + (count!==1?'s':'') + '?')) return;
+  state.tasks = state.tasks.filter(t => !isTaskDone(t));
+  save(); updateUI(); closeSettings();
+}
+function resetAll() {
+  if (!confirm('Reset EVERYTHING? Your XP, level, tasks, and streak will all be deleted.')) return;
+  if (!confirm('Are you sure? This cannot be undone.')) return;
+  localStorage.removeItem('qm_v4');
+  state = { totalXp: 0, level: 1, tasks: [], dailyTasks: [], dailyLog: {}, streak: 0, lastStreakDate: null };
+  save(); updateUI(); closeSettings();
+}
+checkDailyReset();
+updateUI();
+</script>
+</body>
+</html>
